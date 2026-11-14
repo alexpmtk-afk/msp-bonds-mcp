@@ -1,0 +1,25 @@
+# Реальные данные и закрытая конфигурация
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+private/
+credentials/
+portfolio/
+positions/
+accounts/
+runtime/
+.runtime/
+local-data/
+.codex/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+__pycache__/
+.pytest_cache/
+.venv/
