@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from msp_bonds_bond_search.catalog import PolicySourceSnapshot, SnapshotError
 from msp_bonds_bond_search.discovery import parse_smartlab, parse_moex, SourceUnavailable
 from msp_bonds_bond_search.pipeline import DiscoveryService
+from msp_bonds_bond_search.routes import plan_evidence_route
 
 NOW = datetime(2026, 1, 1, 12, tzinfo=timezone.utc)
 RULES = [
@@ -92,6 +93,23 @@ class DiscoveryTests(unittest.TestCase):
         service = DiscoveryService(snapshot=snapshot(), fetch=get, now=lambda: NOW + timedelta(hours=2))
         with self.assertRaises(SnapshotError):
             service.discover(task_authorized=True)
+
+
+class RouteTests(unittest.TestCase):
+    def test_rating_route_lists_alternatives(self):
+        with_missing = plan_evidence_route(snapshot(), "rating")
+        self.assertEqual(with_missing.field, "rating")
+        self.assertTrue(with_missing.missing_from_registry)
+        self.assertFalse(with_missing.providers)
+
+    def test_discovery_route_uses_catalog_order(self):
+        result = plan_evidence_route(snapshot(), "discovery")
+        self.assertEqual([s.name for s in result.providers], ["Smart-Lab", "MOEX ISS"])
+        self.assertIn("Bonds-Lab", result.missing_from_registry)
+
+    def test_missing_evidence_sources_block(self):
+        with self.assertRaises(SnapshotError):
+            plan_evidence_route(snapshot(), "rating")
 
 
 if __name__ == "__main__":
