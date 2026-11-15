@@ -1,0 +1,8 @@
+{
+  "baseline": "0.3.0",
+  "sha256": {
+    "src/msp_bonds_mcp/integrations/google/auth.py": "c0f83a785d9d903e4d05e60d3a4d1599b6cef93ca66d79158424996fc3bf5109",
+    "src/msp_bonds_mcp/integrations/google/approvals.py": "0b195b59cf272687caa538f8ff3f7589d381daeb6ceb3cd4fa286ed2fbf3cc6a",
+    "src/msp_bonds_mcp/integrations/google/writes.py": "b42aacd6f9badb7439f7cc26abd0cdd41469c8733561081e3e6a31b360a9ad40"
+  }
+}

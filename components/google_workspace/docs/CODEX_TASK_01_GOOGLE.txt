@@ -1,0 +1,11 @@
+Public scope summary
+
+This document describes the Google Workspace component included in this repository.
+The component is maintained independently from the shared MCP core and the VTB
+reports component. Its source, tests, configuration template, and local launcher
+are kept under this component directory.
+
+This public summary contains no local task history, account details, credentials,
+spreadsheet identifiers, personal data, or machine-specific paths. Use the
+repository instructions for current architecture, security, and change-control
+requirements.
