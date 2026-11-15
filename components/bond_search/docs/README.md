@@ -32,6 +32,10 @@ two authorized tab snapshots, and returns discovery-only leads.** It does not
 translate free-text policy into an executable full risk engine. No real
 securities were evaluated, and no live website calls were verified.
 
+The `routes.py` planner now maps evidence needs to sources that actually exist in
+ the live resource tab. Only discovery adapters for Smart-Lab and MOEX ISS are
+ implemented; other routes are **plans**, not working website integrations.
+
 ## Source routing and required evidence (design)
 
 | Evidence / stage | First preference | Alternative | Never silently infer |
