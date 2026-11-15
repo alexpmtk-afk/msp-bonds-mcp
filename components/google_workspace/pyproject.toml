@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "msp-bonds-google-workspace"
+version = "0.3.1"
+description = "Google Drive, Gmail, OAuth and local approval integration for MSP Bonds MCP"
+requires-python = ">=3.11"
+dependencies = [
+  "msp-bonds-mcp>=0.4.0,<0.5",
+  "google-api-python-client>=2.100,<3",
+  "google-auth>=2.20,<3",
+  "google-auth-oauthlib>=1.1,<2",
+  "google-auth-httplib2>=0.2,<1",
+  "keyring>=25,<27"
+]
+
+[project.scripts]
+google-local = "msp_bonds_google.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["msp_bonds_google*"]

@@ -1,0 +1,288 @@
+[
+  {
+    "name": "check_vtb_report_formats",
+    "inputSchema": {
+      "properties": {
+        "max_files": {
+          "default": 30,
+          "title": "Max Files",
+          "type": "integer"
+        }
+      },
+      "title": "check_vtb_report_formatsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "get_vtb_archive_status",
+    "inputSchema": {
+      "properties": {},
+      "title": "get_vtb_archive_statusArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_connection_health",
+    "inputSchema": {
+      "properties": {},
+      "title": "google_connection_healthArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_drive_list",
+    "inputSchema": {
+      "properties": {
+        "parent_id": {
+          "default": "",
+          "title": "Parent Id",
+          "type": "string"
+        },
+        "name_contains": {
+          "default": "",
+          "title": "Name Contains",
+          "type": "string"
+        },
+        "page_size": {
+          "default": 100,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        }
+      },
+      "title": "google_drive_listArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_drive_metadata",
+    "inputSchema": {
+      "properties": {
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id"
+      ],
+      "title": "google_drive_metadataArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_drive_read_text",
+    "inputSchema": {
+      "properties": {
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        },
+        "max_chars": {
+          "default": 30000,
+          "title": "Max Chars",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file_id"
+      ],
+      "title": "google_drive_read_textArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_execute_approved_write",
+    "inputSchema": {
+      "properties": {
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id"
+      ],
+      "title": "google_execute_approved_writeArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_gmail_labels",
+    "inputSchema": {
+      "properties": {},
+      "title": "google_gmail_labelsArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_gmail_message",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "title": "google_gmail_messageArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_gmail_search",
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "default": "",
+          "title": "Query",
+          "type": "string"
+        },
+        "label_id": {
+          "default": "",
+          "title": "Label Id",
+          "type": "string"
+        },
+        "page_size": {
+          "default": 50,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        }
+      },
+      "title": "google_gmail_searchArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_gmail_stage_attachment",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "part_id": {
+          "title": "Part Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "part_id"
+      ],
+      "title": "google_gmail_stage_attachmentArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_oauth_status",
+    "inputSchema": {
+      "properties": {},
+      "title": "google_oauth_statusArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_prepare_write",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "params_json": {
+          "title": "Params Json",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "params_json"
+      ],
+      "title": "google_prepare_writeArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_sheets_read",
+    "inputSchema": {
+      "properties": {
+        "spreadsheet_id": {
+          "title": "Spreadsheet Id",
+          "type": "string"
+        },
+        "a1_range": {
+          "default": "A1:J20",
+          "title": "A1 Range",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ],
+      "title": "google_sheets_readArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "google_write_plan_status",
+    "inputSchema": {
+      "properties": {
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id"
+      ],
+      "title": "google_write_plan_statusArguments",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_vtb_reports",
+    "inputSchema": {
+      "properties": {
+        "report_type": {
+          "default": "",
+          "title": "Report Type",
+          "type": "string"
+        },
+        "account": {
+          "default": "",
+          "title": "Account",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 100,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "list_vtb_reportsArguments",
+      "type": "object"
+    }
+  }
+]

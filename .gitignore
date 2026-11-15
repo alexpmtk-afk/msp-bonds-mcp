@@ -1,4 +1,4 @@
-# Реальные данные и закрытая конфигурация
+# Local configuration and credentials
 .env
 .env.*
 !.env.example
@@ -9,6 +9,8 @@
 secrets/
 private/
 credentials/
+
+# Personal, financial, and runtime data
 portfolio/
 positions/
 accounts/
@@ -16,10 +18,23 @@ runtime/
 .runtime/
 local-data/
 .codex/
+.codex_backups_*/
+_staging/
 *.db
 *.sqlite
 *.sqlite3
 *.log
+
+# Python environments, caches, and build output
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.py[cod]
 .venv/
+venv/
+*.egg-info/
+build/
+dist/
+tmp/
+temp/
