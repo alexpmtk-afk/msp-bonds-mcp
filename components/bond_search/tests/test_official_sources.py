@@ -34,7 +34,7 @@ class OfficialSourceTests(unittest.TestCase):
     def test_absent_identifier_returns_no_evidence(self):
         payload = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
         result = load_moex_identifier(TEST_ISIN, fetch=lambda url: payload)
-        self.assertEqual(result.status, "NO_EXACT_MATCH_IN_CURRENT_BOND_LIST")
+        self.assertEqual(result.status, "INCONCLUSIVE")
         self.assertEqual(result.evidence, ())
 
     def test_other_official_sources_are_explicitly_not_automated(self):

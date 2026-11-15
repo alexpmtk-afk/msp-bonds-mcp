@@ -25,6 +25,10 @@ _USER_AGENT = "MSPBonds-Research/0.1"
 _HOST_LOCK = threading.Lock()
 _LAST_HOST_REQUEST: dict[str, float] = {}
 _MIN_HOST_INTERVAL_SECONDS = 1.0
+_MOEX_PAGE_LIMIT = 1000
+_MOEX_MAX_PAGE_COUNT = 20
+_MOEX_SCAN_BUDGET_SECONDS = 45.0
+_MOEX_REQUEST_TIMEOUT_SECONDS = 10.0
 
 
 @dataclass(frozen=True)
@@ -106,6 +110,10 @@ class MoexIsinCheck:
     attempts: int = 1
     response_bytes: int = 0
     elapsed_seconds: float = 0.0
+    scanned_pages: int = 0
+    scanned_rows: int = 0
+    scan_complete: bool = False
+    scan_range: str = ""
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -277,6 +285,8 @@ def _fetch_moex(
     fetch: Callable[[str], bytes],
     *,
     observer: Callable[[FetchDiagnostic], None] | None = None,
+    timeout: float = _MAX_TIMEOUT_SECONDS,
+    max_attempts: int = 2,
 ) -> tuple[bytes, int, float]:
     started = time.monotonic()
     events: list[FetchDiagnostic] = []
@@ -286,7 +296,7 @@ def _fetch_moex(
         _notify(observer, item)
 
     if fetch is safe_get:
-        payload = safe_get(url, max_attempts=2, observer=record)
+        payload = safe_get(url, timeout=timeout, max_attempts=max_attempts, observer=record)
         attempts = max((item.attempt for item in events), default=1)
         elapsed = sum(item.elapsed_seconds for item in events)
         return payload, attempts, elapsed
@@ -467,6 +477,33 @@ def discover_moex(
     return result
 
 
+def _moex_cursor(payload: bytes) -> tuple[int, int, int] | None:
+    """Read ISS pagination metadata; return (index, total, page_size) if valid."""
+    try:
+        root = json.loads(payload)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(root, dict):
+        return None
+    cursor = root.get("securities.cursor") or root.get("cursor")
+    securities = root.get("securities")
+    if cursor is None and isinstance(securities, dict):
+        cursor = securities.get("cursor")
+    if not isinstance(cursor, dict):
+        return None
+    columns, rows = cursor.get("columns"), cursor.get("data")
+    if not isinstance(columns, list) or not isinstance(rows, list) or not rows or not isinstance(rows[0], list):
+        return None
+    try:
+        values = dict(zip((str(item).upper() for item in columns), rows[0]))
+        index, total, page_size = (int(values[key]) for key in ("INDEX", "TOTAL", "PAGESIZE"))
+    except (KeyError, TypeError, ValueError):
+        return None
+    if index < 0 or total < 0 or page_size < 0 or index > total:
+        return None
+    return index, total, page_size
+
+
 def lookup_moex_isin(
     isin: str,
     *,
@@ -474,17 +511,53 @@ def lookup_moex_isin(
     now: datetime | None = None,
     observer: Callable[[FetchDiagnostic], None] | None = None,
 ) -> MoexIsinCheck:
-    """Check one Smart-Lab lead against the official MOEX ISS securities index."""
+    """Check an ISIN exactly; a negative result is limited to verified scanned pages."""
     if not _ISIN.fullmatch(isin):
         raise ValueError("a Russian-format ISIN is required")
-    params = urlencode({
+    started = time.monotonic()
+    deadline = started + _MOEX_SCAN_BUDGET_SECONDS
+    attempts = 0
+    response_bytes = 0
+    request_elapsed = 0.0
+    scanned_pages = 0
+    scanned_rows = 0
+    scan_complete = False
+    scan_ranges: list[str] = []
+    expected_total: int | None = None
+    match: dict[str, object] | None = None
+    checked_url = ""
+
+    def request(url: str) -> bytes:
+        nonlocal attempts, response_bytes, request_elapsed
+        remaining = deadline - time.monotonic()
+        # Reserve one host-rate-limit interval and split the rest across the
+        # socket connect/read timeout. The budget is checked between requests;
+        # the current operation is synchronous and is the only possible overrun.
+        if remaining <= _MIN_HOST_INTERVAL_SECONDS + 0.5:
+            raise SourceUnavailable(
+                "MOEX diagnostic budget exhausted", code="SCAN_BUDGET_EXHAUSTED",
+                phase="budget", attempts=attempts, response_bytes=response_bytes,
+                elapsed_seconds=time.monotonic() - started,
+            )
+        timeout = min(
+            _MOEX_REQUEST_TIMEOUT_SECONDS,
+            (remaining - _MIN_HOST_INTERVAL_SECONDS) / 2,
+        )
+        payload, used_attempts, elapsed = _fetch_moex(
+            url, fetch, observer=observer, timeout=timeout, max_attempts=1,
+        )
+        attempts += used_attempts
+        response_bytes += len(payload)
+        request_elapsed += elapsed
+        return payload
+
+    finder_params = urlencode({
         "q": isin, "limit": 10, "iss.meta": "off", "iss.only": "securities",
     })
-    url = "https://iss.moex.com/iss/securities.json?" + params
-    started = time.monotonic()
-    payload, attempts, request_elapsed = _fetch_moex(url, fetch, observer=observer)
-    columns, rows = _moex_table(payload)
-    match: dict[str, object] | None = None
+    finder_url = "https://iss.moex.com/iss/securities.json?" + finder_params
+    finder_payload = request(finder_url)
+    columns, rows = _moex_table(finder_payload)
+    checked_url = finder_url
     for row in rows:
         if not isinstance(row, list):
             continue
@@ -493,34 +566,77 @@ def lookup_moex_isin(
             match = data
             break
 
-    response_bytes = len(payload)
-    checked_url = url
-    # The documented Security Finder may return no hit for an ISIN even when
-    # the bond is in the official bonds list. Confirm against that list before
-    # reporting an exact miss; never turn the finder miss into a negative fact.
+    # The Security Finder may return no exact row even when the bond is listed.
+    # Scan only a bounded number of official ISS pages and use its cursor to
+    # prove the scanned range. A partial page set can never establish absence.
     if match is None:
-        listing_url = (
-            "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json?"
-            + urlencode({"iss.meta": "off", "iss.only": "securities", "start": 0})
-        )
-        listing_payload, listing_attempts, listing_elapsed = _fetch_moex(
-            listing_url, fetch, observer=observer,
-        )
-        listing_columns, listing_rows = _moex_table(listing_payload)
-        for row in listing_rows:
-            if not isinstance(row, list):
-                continue
-            data = dict(zip(listing_columns, row))
-            if str(data.get("ISIN") or "").strip().upper() == isin:
-                match = data
+        start = 0
+        for _ in range(_MOEX_MAX_PAGE_COUNT):
+            if time.monotonic() >= deadline:
                 break
-        payload = listing_payload
-        checked_url = listing_url
-        response_bytes += len(listing_payload)
-        attempts += listing_attempts
-        request_elapsed += listing_elapsed
+            page_params = urlencode({
+                "iss.meta": "off",
+                "iss.only": "securities,securities.cursor",
+                "start": start,
+                "limit": _MOEX_PAGE_LIMIT,
+            })
+            listing_url = (
+                "https://iss.moex.com/iss/engines/stock/markets/bonds/securities.json?"
+                + page_params
+            )
+            try:
+                listing_payload = request(listing_url)
+            except SourceUnavailable as exc:
+                if exc.code == "SCAN_BUDGET_EXHAUSTED":
+                    break
+                raise
+            listing_columns, listing_rows = _moex_table(listing_payload)
+            scanned_pages += 1
+            scanned_rows += len(listing_rows)
+            cursor = _moex_cursor(listing_payload)
+
+            for row in listing_rows:
+                if not isinstance(row, list):
+                    continue
+                data = dict(zip(listing_columns, row))
+                if str(data.get("ISIN") or "").strip().upper() == isin:
+                    match = data
+                    checked_url = listing_url
+                    break
+
+            if cursor is None:
+                # Without ISS cursor metadata there is no proof of page coverage.
+                break
+            page_index, total, page_size = cursor
+            scan_ranges.append(f"{page_index}:{page_index + page_size}")
+            if page_index != start or page_size != len(listing_rows):
+                break
+            if expected_total is None:
+                expected_total = total
+            elif total != expected_total:
+                break
+            if page_index + page_size >= total:
+                scan_complete = True
+            if match is not None:
+                checked_url = listing_url
+                break
+            if scan_complete:
+                checked_url = listing_url
+                break
+            if page_size == 0 or not listing_rows:
+                break
+            start = page_index + page_size
 
     timestamp = now or datetime.now(timezone.utc)
+    if match is not None:
+        state = "IDENTIFIER_CONFIRMED_ON_MOEX"
+    elif scan_complete:
+        state = "NOT_FOUND_IN_SCANNED_RESULTS"
+    else:
+        state = "INCONCLUSIVE"
+    scan_range = ",".join(scan_ranges)
+    if expected_total is not None:
+        scan_range = f"{scan_range};total={expected_total};complete={str(scan_complete).lower()}"
     return MoexIsinCheck(
         isin=isin,
         matched=match is not None,
@@ -528,11 +644,12 @@ def lookup_moex_isin(
         fetched_at=timestamp,
         security_id=str((match or {}).get("SECID") or ""),
         short_name=str((match or {}).get("SHORTNAME") or (match or {}).get("SECNAME") or ""),
-        state=(
-            "IDENTIFIER_CONFIRMED_ON_MOEX"
-            if match is not None else "NO_EXACT_MATCH_IN_CURRENT_BOND_LIST"
-        ),
+        state=state,
         attempts=attempts,
         response_bytes=response_bytes,
         elapsed_seconds=max(request_elapsed, time.monotonic() - started),
+        scanned_pages=scanned_pages,
+        scanned_rows=scanned_rows,
+        scan_complete=scan_complete,
+        scan_range=scan_range,
     )

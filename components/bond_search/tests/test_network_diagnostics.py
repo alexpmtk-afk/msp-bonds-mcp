@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
+import json
 import socket
 import ssl
 import unittest
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlsplit
 
 from msp_bonds_bond_search.discovery import (
     FetchDiagnostic,
@@ -82,7 +84,7 @@ class NetworkDiagnosticTests(unittest.TestCase):
         empty = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
         missing = lookup_moex_isin(TEST_ISIN, fetch=lambda url: empty)
         self.assertFalse(missing.matched)
-        self.assertEqual(missing.state, "NO_EXACT_MATCH_IN_CURRENT_BOND_LIST")
+        self.assertEqual(missing.state, "INCONCLUSIVE")
         self.assertEqual(missing.security_id, "")
 
     def test_finder_empty_response_falls_back_to_official_bond_list(self):
@@ -104,6 +106,94 @@ class NetworkDiagnosticTests(unittest.TestCase):
         self.assertEqual(result.response_bytes, len(finder_empty) + len(listing))
         self.assertIn("/engines/stock/markets/bonds/securities.json", result.source_url)
         self.assertEqual(len(calls), 2)
+
+    @staticmethod
+    def _iss_page(rows, *, index, total, page_size):
+        return json.dumps({
+            "securities": {
+                "columns": ["ISIN", "SECID", "SHORTNAME"],
+                "data": rows,
+            },
+            "securities.cursor": {
+                "columns": ["INDEX", "TOTAL", "PAGESIZE"],
+                "data": [[index, total, page_size]],
+            },
+        }).encode("utf-8")
+
+    def test_finder_empty_then_exact_isin_on_second_listing_page(self):
+        finder = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
+        first = self._iss_page([["RU0000000001", "SYNTHETIC01", "Synthetic one"]], index=0, total=2, page_size=1)
+        second = self._iss_page([[TEST_ISIN, "SYNTHETIC02", "Synthetic two"]], index=1, total=2, page_size=1)
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            if "q=" in url:
+                return finder
+            start = int(parse_qs(urlsplit(url).query)["start"][0])
+            return first if start == 0 else second
+
+        result = lookup_moex_isin(TEST_ISIN, fetch=fetch)
+        self.assertTrue(result.matched)
+        self.assertEqual(result.security_id, "SYNTHETIC02")
+        self.assertEqual(result.scanned_pages, 2)
+        self.assertEqual(result.scanned_rows, 2)
+        self.assertTrue(result.scan_complete)  # Cursor proves the second page is final.
+        self.assertEqual(len(calls), 3)
+
+    def test_partial_listing_without_cursor_is_inconclusive_not_absent(self):
+        finder = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
+        partial = b'{"securities":{"columns":["ISIN","SECID"],"data":[["RU0000000001","SYNTHETIC01"]]}}'
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            return finder if "q=" in url else partial
+
+        result = lookup_moex_isin(TEST_ISIN, fetch=fetch)
+        self.assertFalse(result.matched)
+        self.assertEqual(result.state, "INCONCLUSIVE")
+        self.assertFalse(result.scan_complete)
+        self.assertEqual(result.scanned_pages, 1)
+        self.assertEqual(result.scanned_rows, 1)
+
+    def test_repeated_page_with_ignored_start_is_inconclusive(self):
+        finder = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
+        repeated = self._iss_page([["RU0000000001", "SYNTHETIC01", "Synthetic one"]], index=0, total=2, page_size=1)
+        calls = []
+
+        def fetch(url):
+            calls.append(url)
+            return finder if "q=" in url else repeated
+
+        result = lookup_moex_isin(TEST_ISIN, fetch=fetch)
+        self.assertEqual(result.state, "INCONCLUSIVE")
+        self.assertFalse(result.scan_complete)
+        self.assertEqual(result.scanned_pages, 2)
+        self.assertEqual(len(calls), 3)
+
+    def test_exhausted_cursor_returns_only_scanned_results_status(self):
+        finder = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
+        page = self._iss_page([["RU0000000001", "SYNTHETIC01", "Synthetic one"]], index=0, total=1, page_size=1)
+        result = lookup_moex_isin(TEST_ISIN, fetch=lambda url: finder if "q=" in url else page)
+        self.assertFalse(result.matched)
+        self.assertEqual(result.state, "NOT_FOUND_IN_SCANNED_RESULTS")
+        self.assertTrue(result.scan_complete)
+        self.assertEqual(result.scanned_pages, 1)
+        self.assertEqual(result.scanned_rows, 1)
+        self.assertIn("total=1;complete=true", result.scan_range)
+
+    def test_listing_timeout_is_not_converted_into_a_negative_match(self):
+        finder = b'{"securities":{"columns":["ISIN","SECID"],"data":[]}}'
+
+        def fetch(url):
+            if "q=" in url:
+                return finder
+            raise SourceUnavailable("timeout", code="READ_TIMEOUT", retryable=True, phase="read")
+
+        with self.assertRaises(SourceUnavailable) as caught:
+            lookup_moex_isin(TEST_ISIN, fetch=fetch)
+        self.assertEqual(caught.exception.code, "READ_TIMEOUT")
 
     def test_bad_json_is_a_parse_error(self):
         with self.assertRaises(SourceUnavailable) as caught:

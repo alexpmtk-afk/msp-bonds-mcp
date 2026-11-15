@@ -96,6 +96,7 @@ class StageResult:
     source_names: tuple[str, ...] = ()
     evidence_count: int = 0
     reason_code: str = ""
+    conflicting_claims: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -158,27 +159,44 @@ def assess_stage(stage: str, evidence: Sequence[EvidenceItem]) -> StageResult:
         raise ValueError(f"unknown verification stage: {stage}")
     required = REQUIRED_CLAIMS[stage]
     confirmed: dict[str, list[EvidenceItem]] = {}
+    explicit_conflicts: set[str] = set()
     source_names: list[str] = []
     for item in evidence:
         if item.claim not in required:
             continue
         if item.source_name not in source_names:
             source_names.append(item.source_name)
-        if item.state is EvidenceState.CONFIRMED and item.kind in _ALLOWED_KINDS[stage] and item.value is not None and item.value != "":
+        if item.kind not in _ALLOWED_KINDS[stage]:
+            continue
+        if item.state is EvidenceState.CONFLICT:
+            explicit_conflicts.add(item.claim)
+        elif (
+            item.state is EvidenceState.CONFIRMED
+            and item.value is not None
+            and item.value != ""
+        ):
             confirmed.setdefault(item.claim, []).append(item)
 
-    conflicts = []
+    disagreements = set()
     for claim, items in confirmed.items():
         values = {(item.unit, _stable_value(item.value)) for item in items}
         if len(values) > 1:
-            conflicts.append(claim)
+            disagreements.add(claim)
+    conflicts = tuple(sorted(explicit_conflicts | disagreements))
     if conflicts:
         return StageResult(
-            stage, StageState.CONFLICT, missing_claims=tuple(sorted(conflicts)),
+            stage, StageState.CONFLICT,
             source_names=tuple(source_names), evidence_count=len(evidence),
-            reason_code="CONFIRMED_SOURCES_DISAGREE",
+            reason_code=(
+                "EXPLICIT_CONFLICT_EVIDENCE" if explicit_conflicts
+                else "CONFIRMED_SOURCES_DISAGREE"
+            ),
+            conflicting_claims=conflicts,
         )
 
+    # MISSING means this source did not supply the claim; it is not a contrary
+    # value and cannot veto a separate valid confirmation. A required claim
+    # still remains open if no eligible source confirms it.
     missing = tuple(claim for claim in required if claim not in confirmed)
     if missing:
         return StageResult(

@@ -72,6 +72,10 @@ class OfficialIdentifierResult:
     attempts: int = 0
     response_bytes: int = 0
     elapsed_seconds: float = 0.0
+    scanned_pages: int = 0
+    scanned_rows: int = 0
+    scan_complete: bool = False
+    scan_range: str = ""
 
 
 def load_moex_identifier(
@@ -86,7 +90,7 @@ def load_moex_identifier(
         isin, fetch=fetch, now=now, observer=observer,
     )
     evidence: tuple[EvidenceItem, ...] = ()
-    status = "NO_EXACT_MATCH_IN_CURRENT_BOND_LIST"
+    status = checked.state
     if checked.matched:
         evidence = (
             EvidenceItem(
@@ -113,6 +117,10 @@ def load_moex_identifier(
         attempts=checked.attempts,
         response_bytes=checked.response_bytes,
         elapsed_seconds=checked.elapsed_seconds,
+        scanned_pages=checked.scanned_pages,
+        scanned_rows=checked.scanned_rows,
+        scan_complete=checked.scan_complete,
+        scan_range=checked.scan_range,
     )
 
 

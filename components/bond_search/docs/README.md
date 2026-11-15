@@ -27,10 +27,14 @@ Research workflow (future stages):
 7. Later: read-only portfolio budget simulation with actual holdings through a
    separately approved shared interface. No portfolio writes/trades by default.
 
-**Current implementation covers steps 2–4 only when the caller supplies the
-two authorized tab snapshots, and returns discovery-only leads.** It does not
-translate free-text policy into an executable full risk engine. No real
-securities were evaluated, and no live website calls were verified.
+The current component validates caller-supplied snapshots, provides bounded
+discovery adapters, and checks exact ISINs through MOEX ISS. If the exact finder
+returns no row, the fallback scans pages using the ISS cursor. It returns
+`INCONCLUSIVE` when page coverage cannot be proven; a complete scan is reported
+only as `NOT_FOUND_IN_SCANNED_RESULTS`, limited to that scanned list. Manual
+rating and issue-document capture keeps supplied facts `UNVERIFIED` and absent
+fields `MISSING`. No securities have been evaluated as fully verified, and the
+component is not registered in the shared MCP.
 
 The `routes.py` planner now maps evidence needs to sources that actually exist in
  the live resource tab. Only discovery adapters for Smart-Lab and MOEX ISS are
@@ -60,8 +64,11 @@ information, spreadsheet identifiers and secrets must not be in PUBLIC GitHub.
 - No background scans, no schedule, no brokerage credentials, no order APIs.
 - `discover(task_authorized=False)` raises. The MCP host must independently
   authenticate the request: the flag is a workflow guard, not authentication.
-- Outbound requests limited to HTTPS and recognized public hostnames, 10-second
-  timeout and 3 MB response cap, no redirect/login/cookies.
+- Outbound requests use HTTPS and recognized public hostnames, with a 3 MB
+  response cap and no redirect/login/cookies. A manual MOEX ISIN diagnostic is
+  limited by a 45-second request-start budget and at most 20 pages, with at most
+  10 seconds per HTTP operation. The in-flight operation may finish after the
+  budget; no further request starts after it is exhausted.
 - Caller must rate-limit requests and check site terms and `robots.txt` before
   enabling Smart-Lab access. Pages requiring login or actively blocking requests
   must be treated as unavailable; no bypass.
@@ -81,8 +88,9 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
 All tests use synthetic in-memory data and mock HTTP responses. No credentials
-or actual portfolio facts are included. Tests have **not** been executed on
-HOME as part of this commit.
+or actual portfolio facts are included. The test suite does not make live
+network calls. See `IMPLEMENTATION_STATUS_PUBLIC.md` for the independent clean
+installation command and result associated with the current PR head.
 
 ## Next implementation milestones
 
