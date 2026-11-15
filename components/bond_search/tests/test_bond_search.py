@@ -97,10 +97,15 @@ class DiscoveryTests(unittest.TestCase):
 
 class RouteTests(unittest.TestCase):
     def test_rating_route_lists_alternatives(self):
-        with_missing = plan_evidence_route(snapshot(), "rating")
-        self.assertEqual(with_missing.field, "rating")
-        self.assertTrue(with_missing.missing_from_registry)
-        self.assertFalse(with_missing.providers)
+        rating = ["Основной", "Банк России — рейтинговый репозитарий",
+                  "https://ratings.cbr.ru/", "Рейтинг", "Сверка", "ПЛАН", "1"]
+        configured = PolicySourceSnapshot.from_sheet_rows(
+            RULES, SOURCES + [rating], fetched_at=NOW,
+        )
+        result = plan_evidence_route(configured, "rating")
+        self.assertEqual(result.providers[0].name, "Банк России — рейтинговый репозитарий")
+        self.assertIn("АКРА", result.missing_from_registry)
+        self.assertEqual(result.status, "ROUTE_ONLY_NOT_VERIFIED")
 
     def test_discovery_route_uses_catalog_order(self):
         result = plan_evidence_route(snapshot(), "discovery")
