@@ -42,11 +42,24 @@ portfolio facts.
 
 ## Verification
 
-65 public tests passed in a clean Python 3.13 environment with
-`DeprecationWarning` treated as an error. The component was built as a local
-wheel and installed with `pip --no-deps --no-index`; the imported package came
-from that environment, `msp_bonds_google` was absent, and no private fixture
-module was loaded. Tests use synthetic data and mocked responses; live
-public-source requests are not run by the test suite. The reproducible command
-is `python -W error::DeprecationWarning -m unittest discover -s tests -p
-"test_*.py" -v`, run from this directory in the isolated environment.
+Feature commit `66aff7ac1e617de9bf5f8e42d45fa57683141677` passed 65 public
+tests from the source tree in a fresh clone, with `DeprecationWarning` treated
+as an error. Tests used synthetic fixtures or mocked network responses; they
+did not run live public-source requests or a live bond search.
+
+A separate HOME component suite passed 90 tests. A separate live HOME check
+read only the two policy tabs through the existing
+`msp_bonds_google.workspace.sheets_read` component. The normal policy
+interpreter accepted the result and produced a snapshot fingerprint; no fixture
+reader was injected. Spreadsheet identifiers, row contents, and the
+account-specific fingerprint are omitted.
+
+A clean wheel installation of feature commit
+`66aff7ac1e617de9bf5f8e42d45fa57683141677` has not been confirmed. Isolated
+environment setup failed during `ensurepip` with `PermissionError`, and
+cleanup returned `WinError 5`. The cause is unknown and is not attributed to
+`bond_search`.
+
+The reproducible public test command is
+`python -W error::DeprecationWarning -m unittest discover -s tests -p
+"test_*.py" -v`, run from the source tree in this directory.
