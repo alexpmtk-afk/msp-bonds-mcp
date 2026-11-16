@@ -1,9 +1,11 @@
 import unittest
 from datetime import date, datetime, timezone
+from dataclasses import replace
 
 from msp_bonds_bond_search.evidence import (
     EvidenceItem,
     EvidenceKind,
+    DocumentProvenance,
     EvidenceState,
     SequentialEvidenceVerifier,
     StageState,
@@ -17,11 +19,39 @@ NOW = datetime(2026, 11, 15, 12, tzinfo=timezone.utc)
 
 def items_for(stage):
     result = []
+    document = None
+    if stage in {"rating", "coupon_terms"}:
+        document = DocumentProvenance(
+            document_type="RATING_RELEASE" if stage == "rating" else "ISSUE_DECISION",
+            document_id="synthetic-doc-001",
+            issuer="Synthetic Issuer LLC",
+            isin="RU000A123456",
+            issue_registration_number="4B0000000000S001P",
+            document_date=date(2026, 11, 14),
+            source_name="Synthetic official record",
+            source_url="https://issuer.example/document",
+            retrieved_at=NOW,
+            artifact_sha256="a" * 64,
+            source_status="CURRENT",
+        )
     for claim in REQUIRED_CLAIMS[stage]:
         kind = EvidenceKind.CALCULATION if stage == "yield" and claim in {"full_entry_cost", "xirr"} else EvidenceKind.PRIMARY
+        value = f"synthetic-{claim}"
+        if stage == "rating":
+            value = {
+                "rating_subject_type": "ISSUE",
+                "rating_subject_id": "RU000A123456",
+                "rating_status": "ACTIVE",
+                "rating_action_is_latest": True,
+            }.get(claim, value)
+        elif stage == "coupon_terms":
+            value = {
+                "future_coupon_terms_legally_defined": True,
+                "issue_document_is_current": True,
+            }.get(claim, value)
         result.append(EvidenceItem(
             claim=claim,
-            value=f"synthetic-{claim}",
+            value=value,
             unit="synthetic",
             source_name="Synthetic official record",
             source_url="https://issuer.example/document",
@@ -30,6 +60,7 @@ def items_for(stage):
             retrieved_at=NOW,
             document_date=date(2026, 11, 14),
             method="offline test fixture",
+            document_provenance=document,
         ))
     return result
 
@@ -189,6 +220,47 @@ class EvidenceTests(unittest.TestCase):
                         kind=EvidenceKind.PRIMARY, state=EvidenceState.CONFIRMED,
                         retrieved_at=NOW,
                     )
+
+    def test_rating_for_another_issue_cannot_verify_the_target_isin(self):
+        items = items_for("rating")
+        index = next(i for i, item in enumerate(items) if item.claim == "rating_subject_id")
+        items[index] = replace(items[index], value="RU000A654321")
+        result = assess_stage("rating", items, expected_isin="RU000A123456")
+        self.assertIs(result.state, StageState.NEEDS_REVIEW)
+        self.assertEqual(result.reason_code, "RATING_SUBJECT_MISMATCH_OR_UNKNOWN")
+
+    def test_withdrawn_or_noncurrent_rating_is_not_current_evidence(self):
+        items = items_for("rating")
+        index = next(i for i, item in enumerate(items) if item.claim == "rating_status")
+        items[index] = replace(items[index], value="WITHDRAWN")
+        result = assess_stage("rating", items, expected_isin="RU000A123456")
+        self.assertIs(result.state, StageState.NEEDS_REVIEW)
+        self.assertEqual(result.reason_code, "RATING_NOT_CONFIRMED_ACTIVE")
+
+    def test_historical_rating_action_must_be_identified_as_latest(self):
+        items = items_for("rating")
+        index = next(i for i, item in enumerate(items) if item.claim == "rating_action_is_latest")
+        items[index] = replace(items[index], value=False)
+        result = assess_stage("rating", items, expected_isin="RU000A123456")
+        self.assertIs(result.state, StageState.NEEDS_REVIEW)
+        self.assertEqual(result.reason_code, "LATEST_RATING_ACTION_NOT_CONFIRMED")
+
+    def test_unknown_future_coupon_terms_do_not_complete_the_terms_stage(self):
+        items = items_for("coupon_terms")
+        index = next(i for i, item in enumerate(items) if item.claim == "future_coupon_terms_legally_defined")
+        items[index] = replace(items[index], value="UNKNOWN")
+        result = assess_stage("coupon_terms", items)
+        self.assertIs(result.state, StageState.NEEDS_REVIEW)
+        self.assertEqual(result.reason_code, "FUTURE_COUPON_TERMS_UNKNOWN")
+
+    def test_superseded_document_cannot_verify_coupon_terms(self):
+        items = items_for("coupon_terms")
+        changed = []
+        for item in items:
+            provenance = replace(item.document_provenance, source_status="SUPERSEDED")
+            changed.append(replace(item, document_provenance=provenance))
+        result = assess_stage("coupon_terms", changed)
+        self.assertIs(result.state, StageState.NEEDS_REVIEW)
 
 
 if __name__ == "__main__":

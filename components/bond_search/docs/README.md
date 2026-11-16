@@ -32,9 +32,19 @@ discovery adapters, and checks exact ISINs through MOEX ISS. If the exact finder
 returns no row, the fallback scans pages using the ISS cursor. It returns
 `INCONCLUSIVE` when page coverage cannot be proven; a complete scan is reported
 only as `NOT_FOUND_IN_SCANNED_RESULTS`, limited to that scanned list. Manual
-rating and issue-document capture keeps supplied facts `UNVERIFIED` and absent
-fields `MISSING`. No securities have been evaluated as fully verified, and the
-component is not registered in the shared MCP.
+rating and issue-document capture uses a fresh catalog snapshot and the
+registered source for the matching evidence route. The official document
+capture records issue/issuer identifiers, document type/date, source link,
+retrieval time, a page/section locator, and a SHA-256 digest of supplied bytes.
+It accepts a local file or bytes already retrieved from one explicit URL; it
+does not crawl, fetch undocumented APIs, or parse PDFs automatically. An
+identity mismatch or a document marked withdrawn/superseded emits no claims.
+Captured values remain `UNVERIFIED` and missing values remain `MISSING`.
+Rating evidence needs exact issuer/issue scope, active status, and confirmation
+that the action is latest. Coupon evidence needs legally defined future terms
+and confirmation that the issue document is current. Unknown currentness or
+coupon terms stays open. No securities have been evaluated as fully verified,
+and the component is not registered in the shared MCP.
 
 The `routes.py` planner now maps evidence needs to sources that actually exist in
  the live resource tab. Only discovery adapters for Smart-Lab and MOEX ISS are
