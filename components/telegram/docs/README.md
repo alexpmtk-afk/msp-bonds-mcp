@@ -1,6 +1,6 @@
 # Telegram notification component 0.1.0
 
-**State (15.11.2026): the component is registered in this development branch as a separate MCP tool; it is not installed on HOME.** The owner-confirmed smoke test through the component source delivered one message to the intended topic. This branch adds explicit tool registration without changing the existing 16 tool names or schemas. No service, scheduler, polling loop, or background worker is created.
+**State (18.11.2026; based on prior HOME checks):** Telegram 0.1.0 is present in the HOME source tree, included in `scripts/install-local.ps1`, and registered as a separate `send_telegram_notification(event_id, text)` tool in `core/server.py`. Earlier HOME checks confirmed installed editable-package metadata and an 18-tool stdio contract (17 pre-existing HOME schemas plus Telegram). The latest stdio diagnostic failed during Windows stdin-pipe creation, before the child MCP process started (`WinError 5`; cause unknown); current runtime availability remains unverified. Current destination settings, Credential Locker availability, and delivery through the installed MCP tool have not been verified. The owner previously confirmed a separate smoke-test delivery through the component source; this did not verify the installed MCP tool. No service, scheduler, polling loop, or background worker is created. Public `main` registers 17 tools (16 original tools plus Telegram), distinct from the earlier HOME inventory.
 
 ## Fixed destination
 
