@@ -1,0 +1,41 @@
+name: Bond research MCP contract tests
+
+on:
+  pull_request:
+    paths:
+      - 'src/msp_bonds_mcp/**'
+      - 'components/bond_search/**'
+      - 'components/google_workspace/**'
+      - 'components/vtb_reports/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/bond-research-tests.yml'
+  push:
+    branches: ['chatgpt/bond-analyze-mcp-stage1-2026-11-18']
+
+permissions:
+  contents: read
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install components without any credentials
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e . -e components/vtb_reports -e components/google_workspace -e components/bond_search
+          python -m pip check
+      - name: Validate MCP tool contracts and all component tests
+        env:
+          MSP_GOOGLE_WRITES_ENABLED: '0'
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          python -m unittest discover -s components/bond_search/tests -p 'test_*.py' -v
+          python -m unittest discover -s components/google_workspace/tests -p 'test_*.py' -v
+          python -m unittest discover -s components/vtb_reports/tests -p 'test_*.py' -v
