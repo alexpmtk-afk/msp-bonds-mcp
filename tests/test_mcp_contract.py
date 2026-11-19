@@ -40,7 +40,7 @@ class ComponentLayoutTests(unittest.TestCase):
         self.assertEqual({p.name for p in vtb.iterdir()}, {"__init__.py", "archive.py"})
         self.assertEqual(
             {p.name for p in (PACKAGE / "core").iterdir()},
-            {"__init__.py", "paths.py", "server.py"},
+            {"__init__.py", "paths.py", "server.py", "bond_dossier.py"},
         )
 
     def test_google_files_are_not_left_in_shared_source_tests_scripts_or_env(self):
@@ -152,8 +152,12 @@ class ComponentLayoutTests(unittest.TestCase):
                     )
 
         actual = asyncio.run(discover())
-        self.assertEqual(len(actual), 16)
-        self.assertEqual(actual, expected)
+        self.assertEqual(len(actual), 17)
+        old_tools = [item for item in actual if item["name"] != "bond_analyze"]
+        self.assertEqual(old_tools, expected)
+        new_tools = [item for item in actual if item["name"] == "bond_analyze"]
+        self.assertEqual(len(new_tools), 1)
+        self.assertIn("isin", new_tools[0]["inputSchema"].get("required", []))
 
 
 if __name__ == "__main__":

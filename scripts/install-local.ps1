@@ -1,4 +1,4 @@
-# Install the three local editable packages into the existing project .venv.
+# Install the four local editable packages into the existing project .venv.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $root '.venv/Scripts/python.exe'
@@ -8,7 +8,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Install setuptools and wheel in the project .v
 $packages = @(
     $root,
     (Join-Path $root 'components/vtb_reports'),
-    (Join-Path $root 'components/google_workspace')
+    (Join-Path $root 'components/google_workspace'),
+    (Join-Path $root 'components/bond_search')
 )
 foreach ($package in $packages) {
     & $python -m pip install --no-build-isolation --editable $package
