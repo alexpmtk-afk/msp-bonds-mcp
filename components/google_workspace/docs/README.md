@@ -1,6 +1,6 @@
 # Google Workspace component
 
-Package version: msp-bonds-google-workspace 0.3.1. It is installed beside the root msp-bonds-mcp package and provides Google Drive, Gmail, OAuth and local approval tools to one stdio server. It does not start a separate server.
+Package version: msp-bonds-google-workspace 0.3.1. It is installed beside the root msp-bonds-mcp 0.4.0 package and provides Google Drive, Gmail, OAuth and local approval tools to the single stdio server. It does not start a separate server.
 
 ## Contents and dependencies
 
@@ -14,16 +14,16 @@ Install the root package first, then VTB and Google components with scripts/inst
 
 ## MCP tools
 
-The Google component provides Gmail and Drive tools to the single server. Public main has 17 tools in its current snapshot; the owner-reported HOME stdio check on 21.11.2026 found 18 tools and matched all names and input schemas against the local HOME fixture. These are separate code snapshots.
+Google tools: google_oauth_status, google_connection_health, google_drive_list, google_drive_metadata, google_drive_read_text, google_sheets_read, google_gmail_labels, google_gmail_search, google_gmail_message, google_gmail_stage_attachment, google_prepare_write, google_write_plan_status, google_execute_approved_write.
+
+Public main currently has three read-only VTB archive tools and the Telegram tool, for 17 tools total. The owner-reported HOME stdio check on 21.11.2026 found 18 tools and matched all names and input schemas against the local HOME fixture. These are separate code snapshots.
 
 ## Security and OAuth
 
-OAuth is initiated only by an explicit owner action; the MCP server does not start a browser login. Tokens are stored through keyring in Windows Credential Manager, never in source files. Gmail OAuth requests gmail.readonly.
+OAuth is interactive and is not started by the MCP server. Credentials stay in Windows Credential Manager through keyring; do not place credentials, tokens, email contents or real broker data in this package or repository.
 
-The shared service_client() calls load_credentials(). When an access token has expired and a refresh token exists, Google Auth refreshes on demand and the component saves the updated record through keyring in Windows Credential Manager. There is no background refresh job. The owner reported that a token check and one read-only users.getProfile call passed in the normal HOME session on 21.11.2026. This does not mean that the package test suite performs live API calls.
+For read-only Gmail login, the component requests only gmail.readonly. A separate gmail_write flow exists in the package but was not used or authorized for this setup. Gmail services call service_client() -> load_credentials(); when an access token expires and a refresh token is available, the existing code refreshes on demand and saves the updated credential record through keyring. There is no background refresh task.
 
-Google Drive and Gmail changes remain disabled by default. A remote change requires a locally reviewed, single-use approval and the explicit process setting MSP_GOOGLE_WRITES_ENABLED=1; leave it unset or at 0 during setup. See GMAIL_OAUTH_SETUP.md for exact commands, diagnostic codes and safety boundaries.
+The owner reported that a token check and one read-only users.getProfile call passed in the normal HOME session. The current documentation task did not repeat that live API call. Package tests remain offline and do not prove live authorization.
 
-## Central portfolio sheet
-
-The canonical portfolio sheet and its rules are described in the local registry docs/LOCAL_DATA_SOURCE_REGISTRY.txt. This component does not read or fill it automatically; that integration is not implemented. Do not create a parallel primary sheet or place private links, IDs or real financial data in GitHub PUBLIC.
+Google Drive and Gmail changes remain disabled by default. A remote change requires a locally reviewed, single-use approval and the explicit process setting MSP_GOOGLE_WRITES_ENABLED=1; leave it unset or at 0 during setup. See GMAIL_OAUTH_SETUP.md and instructions/05_MCP.txt for setup and security details.
