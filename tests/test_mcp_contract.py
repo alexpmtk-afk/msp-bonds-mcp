@@ -39,7 +39,7 @@ class ComponentLayoutTests(unittest.TestCase):
         self.assertEqual(
             {p.name for p in google.iterdir()},
             {"__init__.py", "approvals.py", "auth.py", "cli.py", "identity.py",
-             "utils.py", "workspace.py", "writes.py"},
+             "gmail_profile_diagnostic.py", "utils.py", "workspace.py", "writes.py"},
         )
         vtb = VTB_ROOT / "src" / "msp_bonds_vtb_reports"
         self.assertEqual({p.name for p in vtb.iterdir()}, {"__init__.py", "archive.py"})
