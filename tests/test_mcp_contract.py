@@ -51,7 +51,7 @@ class ComponentLayoutTests(unittest.TestCase):
         )
         self.assertEqual(
             {p.name for p in (PACKAGE / "core").iterdir()},
-            {"__init__.py", "paths.py", "server.py"},
+            {"__init__.py", "paths.py", "server.py", "diagnostics.py"},
         )
 
     def test_google_files_are_not_left_in_shared_source_tests_scripts_or_env(self):
@@ -184,10 +184,10 @@ class ComponentLayoutTests(unittest.TestCase):
                     )
 
         actual = asyncio.run(discover())
-        self.assertEqual(len(actual), 17)
+        self.assertEqual(len(actual), 18)
         actual_by_name = {item["name"]: item for item in actual}
         expected_names = {item["name"] for item in expected}
-        self.assertEqual(set(actual_by_name), expected_names | {"send_telegram_notification"})
+        self.assertEqual(set(actual_by_name), expected_names | {"send_telegram_notification", "get_mcp_system_diagnostics"})
         self.assertEqual(
             [actual_by_name[item["name"]] for item in expected],
             expected,
@@ -203,6 +203,24 @@ class ComponentLayoutTests(unittest.TestCase):
                     },
                     "required": ["event_id", "text"],
                     "title": "send_telegram_notificationArguments",
+                    "type": "object",
+                },
+            },
+        )
+
+        self.assertEqual(
+            actual_by_name["get_mcp_system_diagnostics"],
+            {
+                "name": "get_mcp_system_diagnostics",
+                "inputSchema": {
+                    "properties": {
+                        "component": {
+                            "default": "core",
+                            "title": "Component",
+                            "type": "string",
+                        },
+                    },
+                    "title": "get_mcp_system_diagnosticsArguments",
                     "type": "object",
                 },
             },
