@@ -9,6 +9,8 @@
 secrets/
 private/
 credentials/
+client_secret*.json
+credentials.json
 
 # Personal, financial, and runtime data
 portfolio/
