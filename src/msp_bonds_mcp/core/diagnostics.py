@@ -44,10 +44,24 @@ def _package_versions() -> dict[str, str]:
     return versions
 
 
-def _declared_tools(server_path: Path) -> dict:
+def _safe_source_path(root: Path, path: Path) -> bool:
+    """Reject redirects in every path component, including Windows junctions."""
+    try:
+        relative = path.relative_to(root)
+        current = root
+        for part in relative.parts:
+            current = current / part
+            if current.is_symlink() or getattr(current, "is_junction", lambda: False)():
+                return False
+        return path.resolve(strict=True) == path and path.is_relative_to(root)
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
+def _declared_tools(root: Path, server_path: Path) -> dict:
     """Static source-level tool names; not a runtime MCP registry query."""
     try:
-        if server_path.is_symlink() or server_path.stat().st_size > _MAX_FILE_SIZE:
+        if not _safe_source_path(root, server_path) or not server_path.is_file() or server_path.stat().st_size > _MAX_FILE_SIZE:
             return {"status": "UNAVAILABLE"}
         tree = ast.parse(server_path.read_text(encoding="utf-8"))
         names = []
@@ -78,7 +92,7 @@ def collect_for_root(project_root: Path, component: str = "core") -> dict:
     for group, folders in selected.items():
         for folder in folders:
             directory = root / folder
-            if not directory.is_dir() or directory.is_symlink():
+            if not _safe_source_path(root, directory) or not directory.is_dir():
                 skipped["missing_directories"] += 1
                 continue
             # Direct *.py children only. Do not recursively read arbitrary directories.
@@ -87,7 +101,7 @@ def collect_for_root(project_root: Path, component: str = "core") -> dict:
                     return {"status": "PARTIAL", "reason": "SOURCE_BUDGET_EXCEEDED",
                             "component": component, "files": result, "skipped": skipped}
                 try:
-                    if path.is_symlink() or not path.resolve().is_relative_to(root):
+                    if not _safe_source_path(root, path) or not path.is_file():
                         skipped["unsafe_or_unreadable"] += 1
                         continue
                     st = path.stat()
@@ -108,9 +122,9 @@ def collect_for_root(project_root: Path, component: str = "core") -> dict:
     if component in ("core", "all"):
         path = root / "server.py"
         try:
-            if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(root):
+            if _safe_source_path(root, path) and path.is_file():
                 st = path.stat()
-                if st.st_size <= _MAX_FILE_SIZE and len(result) < _MAX_FILES:
+                if st.st_size <= _MAX_FILE_SIZE and len(result) < _MAX_FILES and total_bytes + st.st_size <= _MAX_TOTAL_BYTES:
                     with path.open("rb") as f:
                         digest = hashlib.file_digest(f, "sha256").hexdigest()
                     result.append({"path": "server.py", "sha256": digest,
@@ -120,7 +134,7 @@ def collect_for_root(project_root: Path, component: str = "core") -> dict:
         except (OSError, ValueError, RuntimeError):
             skipped["unsafe_or_unreadable"] += 1
     result.sort(key=lambda f: f["path"])
-    declared = _declared_tools(root / "src/msp_bonds_mcp/core/server.py")
+    declared = _declared_tools(root, root / "src/msp_bonds_mcp/core/server.py")
     return {
         "status": "OK" if result else "NO_SOURCE_FILES", "component": component,
         "mode": "READ_ONLY", "versions": _package_versions(),
