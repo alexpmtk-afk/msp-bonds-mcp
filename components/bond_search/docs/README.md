@@ -1,7 +1,6 @@
 # bond_search — read-only research component (v0.1.0)
 
-Status: **GitHub code skeleton only**. Not installed on HOME, not registered in
-the root MCP and not authorized for portfolio construction or trading.
+Status: **public branch code skeleton only**. This file does not establish the current HOME installation or live MCP registry. No trading authorization.
 
 ## Objective
 
@@ -18,12 +17,8 @@ Research workflow (future stages):
    complete snapshot. Expired/unavailable policy **blocks discovery**.
 4. Initial discovery: Smart-Lab `https://smart-lab.ru/q/bonds/`. If unavailable
    or no parsable ISIN rows, fall back to public MOEX ISS bonds listing.
-5. Leads are research-only until independent verification of **all** applicable
-   requirements in the canonical rule sheet, including instrument identity,
-   issuer country, currency, credit rating, issuer finances, defaults,
-   legally complete coupon/redemption terms, current bid/ask, charges,
-   liquidity and existing holdings.
-6. Later: yield/cashflow calculation and side-by-side risk-adjusted comparison.
+5. Discovery returns preliminary leads using the authorized policy. A separate route planner provides applicable evidence checks, sources and unresolved facts without mass-prefetching documents.
+6. ChatGPT investigates the selected leads, reusing current verified issuer-level evidence and checking ISIN-specific terms separately. Targeted read-only adapters support individual evidence requests; a route is not evidence.
 7. Later: read-only portfolio budget simulation with actual holdings through a
    separately approved shared interface. No portfolio writes/trades by default.
 
@@ -93,6 +88,9 @@ HOME as part of this commit.
   quote time, status and discrepancies.
 - Add machine-readable rule approval mapping, with owner sign-off. Do not
   silently execute natural-language historical or unapproved rules.
-- Implement secondary legally reliable providers by evidence type, credit
-  checks and cash-flow math, all with synthetic tests and explicit stops.
+- Implement targeted evidence providers and deterministic calculation helpers only as needed; ChatGPT performs substantive interpretation. Test route-only behavior, deduplication, provenance, freshness and honest early-stop states.
 - Coordinate the only existing MCP core's registration with its owner.
+
+## Approved target workflow — 2026-11-24
+
+MCP orchestrates preliminary discovery and evidence routing; the AI analyst performs substantive analysis. Do not automatically download every document for every candidate. Preserve verified evidence records (source, observation date, period, method, status) rather than bulk raw material; group by proven legal issuer identity, not name similarity. Missing evidence is not a negative fact. Stop only with an evidenced violation of an applicable mandatory rule or an explicit task boundary; record remaining checks. This describes a target design, not a completed installation. No portfolio writes or trades are implied.
