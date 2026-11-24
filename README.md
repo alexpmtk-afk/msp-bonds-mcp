@@ -31,3 +31,7 @@ PR №5 добавил в main отдельный компонент Telegram и
 Инструкции и команды настройки находятся в instructions/ и SETUP.txt. Файлы .env.example — только шаблоны; они не загружаются автоматически.
 
 Секреты, токены, личные конфигурации HOME, финансовые документы, резервные копии и временные данные не должны попадать в этот репозиторий. Подробная процедура авторизации и безопасного профиля Gmail описана в components/google_workspace/docs/GMAIL_OAUTH_SETUP.md.
+
+## Target bond research architecture (approved 2026-11-24; not yet accepted on HOME)
+
+MCP provides preliminary discovery, evidence routes and targeted read-only retrieval. ChatGPT performs substantive research and interpretation. Reuse verified current issuer-level evidence; keep ISIN-specific checks separate. Preserve evidence and its provenance, not bulk downloads. The canonical authorized policy controls requirements. No automatic all-candidate deep scan, portfolio writes or trade execution is implied.

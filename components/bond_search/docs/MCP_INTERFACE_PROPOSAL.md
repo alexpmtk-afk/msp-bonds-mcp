@@ -1,4 +1,6 @@
-# Proposed MCP interface — not registered or active
+# Proposed MCP interface — historical proposal; target revision 2026-11-24
+
+The names and limits below are historical, not the current HOME registry. Reuse existing bond_search and bond_analyze contracts; do not register duplicate tools. Target design: bond_search returns preliminary candidates, bond_analyze returns a route/check map without bulk external downloads, optional targeted providers return evidence, and ChatGPT performs interpretation. Preserve provenance, issuer-level reuse and honest incomplete/early-stop states. No implementation is claimed by this document.
 
 Integration owner: existing MCP core maintainer. No changes to root server
 or shared packages from this component. Data and permissions are supplied by
@@ -22,14 +24,10 @@ Output:
 Discovery does NOT imply that ISIN belongs to a Russian corporate bond,
 has a current quote, acceptable rating or legal coupon schedule.
 
-## 2. bond_evaluate (planned, not implemented)
+## 2. Historical bond_evaluate proposal (superseded as an autonomous evaluator)
 
 Input: unique validated ISIN and up-to-date market quote, approved policy,
-issuer/source identity. Verify each materially required property using a
-primary source or clearly-qualified alternative and keep provenance per
-field. Compute full-price entry including accrued interest; coupon/amortization
-calendar, optionality and scenario cashflows; ratings, default/legal/financial
-quality; market risk and liquidity.
+issuer/source identity. For the target workflow, return applicable checks and source routes; the AI analyst verifies each material property using primary or qualified alternative sources. Targeted providers and deterministic calculation helpers may supply evidence on explicit request. Do not prefetch all documents.
 
 Output: individual evidence objects with `source_url`,
 `document_date`, `retrieved_at`, `value`, `unit`, `method`,
