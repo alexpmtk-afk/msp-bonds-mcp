@@ -46,6 +46,22 @@ class DiagnosticsTests(unittest.TestCase):
         out = collect_for_root(self.root, 'core')
         self.assertNotIn('src/msp_bonds_mcp/core/external.py', [x['path'] for x in out['files']])
 
+    def test_redirected_source_ancestor_is_rejected(self):
+        outside = self.root / 'runtime' / 'msp_bonds_mcp'
+        (outside / 'core').mkdir(parents=True)
+        (outside / 'core' / 'server.py').write_text(
+            '@mcp.tool()\ndef private_name(): pass\n', encoding='utf-8')
+        redirect_root = self.root / 'src' / 'msp_bonds_mcp'
+        moved = self.root / 'original_source'
+        redirect_root.rename(moved)
+        try:
+            redirect_root.symlink_to(outside, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest('symlink unavailable on this OS')
+        out = collect_for_root(self.root, 'core')
+        self.assertEqual(out['source_declared_mcp_tools']['status'], 'UNAVAILABLE')
+        self.assertFalse(any(x['path'].startswith('src/') for x in out['files']))
+
     def test_no_recursive_or_non_python_read(self):
         sub = self.core / 'nested'
         sub.mkdir()
