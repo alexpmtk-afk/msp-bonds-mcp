@@ -127,3 +127,14 @@ def google_write_plan_status(plan_id: str) -> dict:
 def google_execute_approved_write(plan_id: str) -> dict:
     """Execute an exact plan ONLY after separate local owner approval and writes enabled."""
     return _safe(execute, plan_id)
+
+
+@mcp.tool()
+def bond_analyze(isin: str, check_moex: bool = False, include_ledger: bool = False) -> dict:
+    """Plan a 27-area, 94+-rule single-ISIN audit from canonical Google policy.
+
+    Read-only; the optional manual MOEX lookup checks only the identifier.
+    No automatic buy conclusion, portfolio access, or implicit scheduled scans.
+    """
+    from .bond_dossier import analyze_bond
+    return _safe(analyze_bond, isin, check_moex=check_moex, include_ledger=include_ledger)
