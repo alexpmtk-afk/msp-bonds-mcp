@@ -41,7 +41,9 @@ CHECKS = (
     ("macro_context", "Банк России — ключевая ставка", (15, 42, 67, 87)),
     ("risk_conclusion", "Единая таблица «Портфель облигаций»", (22, 24, 31, 51, 54, 55, 71, 75, 76, 77, 78, 88, 89, 90)),
 )
-CONTEXT_ONLY = frozenset((2, 3, 21, 23, 25, 26, 27, 49, 50, 52, 57, 58, 63, 64, 69, 73, 91, 92, 93, 94))
+CONTEXT_ONLY = frozenset((2, 3, 21, 23, 25, 26, 27, 49, 50, 52, 57, 58, 63, 64, 69, 73, 91, 92, 93, 94, 95, 96))
+# Rule 97 governs the entire second-level research workflow; mapping is not evidence.
+CHECKS = tuple((code, source, ids + (97,)) for code, source, ids in CHECKS)
 
 
 def valid_isin(isin: str) -> bool:
@@ -62,7 +64,7 @@ def build_plan(snapshot, *, include_ledger: bool = False) -> dict:
     """Return source-routing plan; NEVER treat mappings as executed checks."""
     snapshot.assert_fresh()
     ids = [x.rule_id for x in snapshot.rules]
-    if len(ids) < 94 or len(ids) > 500 or set(ids) != set(range(1, len(ids) + 1)):
+    if len(ids) < 97 or len(ids) > 500 or set(ids) != set(range(1, len(ids) + 1)):
         raise ValueError("CANONICAL_RULES_INCOMPLETE_OR_NOT_CONTIGUOUS")
     sources = {s.name: s for s in snapshot.resources}
     if len(sources) < 26:

@@ -8,11 +8,11 @@ from unittest.mock import patch
 from msp_bonds_mcp.core.bond_dossier import CHECKS, build_plan, analyze_bond, valid_isin
 
 
-def sample_snapshot():
+def sample_snapshot(rule_count=97):
     names = {name for _, name, _ in CHECKS}
-    names.update("extra-registered-source-" + str(i) for i in range(26))
+    names.update("extra-registered-source-" + str(i) for i in range(26 - len(names)))
     return SimpleNamespace(
-        rules=[SimpleNamespace(rule_id=n, status="ДЕЙСТВУЕТ") for n in range(1, 95)],
+        rules=[SimpleNamespace(rule_id=n, status="ДЕЙСТВУЕТ") for n in range(1, rule_count + 1)],
         resources=[SimpleNamespace(name=n) for n in sorted(names)],
         fingerprint="synthetic-policy",
         fetched_at=datetime.now(timezone.utc),
@@ -31,20 +31,40 @@ class DossierToolTests(unittest.TestCase):
             result = analyze_bond("RU000A10FGE6", check_moex=True)
         self.assertEqual(result["status"], "NOT_CONFIGURED")
 
-    def test_covers_all_94_rules_without_false_positives(self):
+    def test_covers_all_97_rules_without_false_positives(self):
         plan = build_plan(sample_snapshot(), include_ledger=True)
-        self.assertEqual(plan["methodology"]["rules"], 94)
+        self.assertEqual(plan["methodology"]["rules"], 97)
         self.assertEqual(plan["methodology"]["mapped_checks"], 27)
         self.assertGreaterEqual(plan["methodology"]["registered_sources"], 26)
-        self.assertEqual(len(plan["rule_ledger"]), 94)
+        self.assertEqual(len(plan["rule_ledger"]), 97)
         self.assertEqual(plan["recommendation"], "NONE")
         self.assertEqual(plan["gates"]["FULL_DOSSIER"], "NOT_READY")
         self.assertTrue(all(x["status"] == "NOT_COLLECTED" for x in plan["checks"]))
 
+    def test_workflow_rule_mapping(self):
+        plan = build_plan(sample_snapshot(), include_ledger=True)
+        ledger = {row["id"]: row for row in plan["rule_ledger"]}
+        for n in (95, 96):
+            self.assertEqual(ledger[n]["scope"], "CONTEXT_OR_DEVELOPMENT")
+            self.assertEqual(ledger[n]["planned_checks"], [])
+        self.assertEqual(ledger[97]["scope"], "MAPPED_NOT_EXECUTED")
+        self.assertEqual(ledger[97]["planned_checks"], [code for code, _, _ in CHECKS])
+        self.assertEqual(plan["methodology"]["executed_credit_checks"], 0)
+        self.assertEqual(plan["source_status"], "NOT_QUERIED")
+        self.assertEqual(len(plan["source_ledger"]), 26)
+
+    def test_stale_policy_rejected(self):
+        with self.assertRaisesRegex(ValueError, "CANONICAL_RULES"):
+            build_plan(sample_snapshot(94))
+
+    def test_unmapped_future_rule_rejected(self):
+        with self.assertRaisesRegex(ValueError, "RULES_WITHOUT_MAPPING_OR_CONTEXT"):
+            build_plan(sample_snapshot(98))
+
     def test_skipped_rule_rejected(self):
         broken = sample_snapshot()
         broken.rules.pop()
-        broken.rules.append(SimpleNamespace(rule_id=95, status="ДЕЙСТВУЕТ"))
+        broken.rules.append(SimpleNamespace(rule_id=98, status="ДЕЙСТВУЕТ"))
         with self.assertRaisesRegex(ValueError, "CANONICAL_RULES"):
             build_plan(broken)
 
