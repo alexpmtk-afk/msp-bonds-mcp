@@ -185,4 +185,3 @@ def _validated_access_token(
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

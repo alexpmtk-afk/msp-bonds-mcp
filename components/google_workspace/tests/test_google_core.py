@@ -40,6 +40,61 @@ class GoogleHelpersTests(unittest.TestCase):
         self.assertIn("O\\'Reilly", q)
         self.assertEqual(result["next_page_token"], "page2")
 
+    def test_gmail_attachment_size_is_checked_before_attachment_download(self):
+        mock = MagicMock()
+        mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+            "payload": {"parts": [{"partId": "1", "filename": "large.pdf",
+                                   "body": {"attachmentId": "A", "size": gw.MAX_BYTES + 1}}]}}
+        with patch.object(gw, "_gmail", return_value=mock):
+            with self.assertRaises(InputError):
+                gw.gmail_attachment_bytes("mid", "1")
+        mock.users.return_value.messages.return_value.attachments.return_value.get.assert_not_called()
+
+    def test_gmail_attachment_bytes_stay_in_memory_for_octet_stream(self):
+        mock = MagicMock()
+        mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+            "payload": {"parts": [{"partId": "1", "filename": "report.bin",
+                                   "mimeType": "application/octet-stream",
+                                   "body": {"attachmentId": "A", "size": 4}}]}}
+        mock.users.return_value.messages.return_value.attachments.return_value.get.return_value.execute.return_value = {
+            "data": "UEsDBA=="}
+        with patch.object(gw, "_gmail", return_value=mock):
+            result = gw.gmail_attachment_bytes("mid", "1")
+        self.assertEqual(result["data"], b"PK\x03\x04")
+        self.assertEqual(result["mime_type"], "application/octet-stream")
+        self.assertEqual(result["size"], 4)
+
+    def test_gmail_message_manifest_does_not_request_body_bytes(self):
+        mock = MagicMock()
+        mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+            "id": "mid", "payload": {"headers": [], "parts": []}}
+        with patch.object(gw, "_gmail", return_value=mock):
+            gw.gmail_message("mid", include_body=False)
+        kwargs = mock.users.return_value.messages.return_value.get.call_args.kwargs
+        self.assertNotIn("data", kwargs["fields"])
+        self.assertIn("size", kwargs["fields"])
+        self.assertIn("attachmentId", kwargs["fields"])
+
+    def test_inline_attachment_without_separate_id_is_rejected_safely(self):
+        mock = MagicMock()
+        mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+            "payload": {"parts": [{"partId": "1", "filename": "report.pdf",
+                                   "body": {"size": 4}}]}}
+        with patch.object(gw, "_gmail", return_value=mock):
+            with self.assertRaises(InputError):
+                gw.gmail_attachment_bytes("mid", "1")
+        mock.users.return_value.messages.return_value.attachments.return_value.get.assert_not_called()
+
+    def test_gmail_missing_declared_size_never_downloads_attachment(self):
+        mock = MagicMock()
+        mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {
+            "payload": {"parts": [{"partId": "1", "filename": "report.pdf",
+                                   "body": {"attachmentId": "A"}}]}}
+        with patch.object(gw, "_gmail", return_value=mock):
+            with self.assertRaises(InputError):
+                gw.gmail_attachment_bytes("mid", "1")
+        mock.users.return_value.messages.return_value.attachments.return_value.get.assert_not_called()
+
     def test_gmail_staging_only_no_cloud_write(self):
         mock = MagicMock()
         mock.users.return_value.messages.return_value.get.return_value.execute.return_value = {

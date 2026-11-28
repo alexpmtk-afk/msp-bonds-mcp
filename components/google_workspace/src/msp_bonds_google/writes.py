@@ -89,7 +89,18 @@ def execute(plan_id: str) -> dict:
             raise InputError("Staged attachment changed after approval; no upload")
         # Prevent transferring email attachments into a different Google account.
         assert_same_account()
-        return _upload(content, p["name"], p["parent_id"], _mime_for_name(p["name"]))
+        result = _upload(content, p["name"], p["parent_id"], _mime_for_name(p["name"]))
+        if result.get("status") == "VERIFIED":
+            try:
+                from msp_bonds_vtb_reports.vtb_registry_refresh import refresh_vtb_registry
+                result["vtb_registry"] = refresh_vtb_registry(
+                    target_parent_id=p["parent_id"], expected_name=p["name"],
+                    expected_file_id=result["file_id"], expected_sha256=result["sha256"],
+                )
+            except Exception as exc:
+                # Upload is already complete; never mask success with indexing failure.
+                result["vtb_registry"] = {"status": "ERROR", "error_type": type(exc).__name__}
+        return result
 
     if action == "drive_replace_text":
         meta = _match_version(p["file_id"], p["expected_version"])

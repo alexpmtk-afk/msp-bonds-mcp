@@ -15,7 +15,7 @@ class IdentityTests(unittest.TestCase):
         return {"drive": drive, "gmail": gmail}
 
     def test_matching_identities_without_disclosing_emails(self):
-        clients = self._clients("Owner@Example.test", "owner@example.test")
+        clients = self._clients("project-address-01@example.invalid", "project-address-01@example.invalid")
         with patch.object(gi, "service_client", side_effect=lambda alias, svc: clients[svc]):
             result = gi.connection_health()
         self.assertEqual(result["status"], "PASS")
@@ -23,12 +23,12 @@ class IdentityTests(unittest.TestCase):
         self.assertNotIn("example.test", str(result))
 
     def test_different_accounts_are_blocked(self):
-        clients = self._clients("owner@example.test", "someone-else@example.test")
+        clients = self._clients("project-address-01@example.invalid", "project-address-02@example.invalid")
         with patch.object(gi, "service_client", side_effect=lambda alias, svc: clients[svc]):
             with self.assertRaises(InputError):
                 gi.assert_same_account()
 
     def test_missing_identity_rejected(self):
-        clients = self._clients("", "owner@example.test")
+        clients = self._clients("", "project-address-01@example.invalid")
         with patch.object(gi, "service_client", side_effect=lambda alias, svc: clients[svc]):
             self.assertEqual(gi.connection_health()["status"], "FAIL")

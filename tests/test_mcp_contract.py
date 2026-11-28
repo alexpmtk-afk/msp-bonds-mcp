@@ -20,9 +20,13 @@ VTB_ROOT = ROOT / "components" / "vtb_reports"
 TELEGRAM_ROOT = ROOT / "components" / "telegram"
 
 
+def child_names(path):
+    return {entry.name for entry in path.iterdir() if entry.name != "__pycache__"}
+
+
 class ComponentLayoutTests(unittest.TestCase):
     def test_functional_components_own_sources_tests_docs_config_and_metadata(self):
-        self.assertEqual({p.name for p in PACKAGE.iterdir()}, {"__init__.py", "core"})
+        self.assertEqual(child_names(PACKAGE), {"__init__.py", "core"})
         self.assertEqual(
             {p.name for p in GOOGLE_ROOT.iterdir()},
             {"src", "scripts", "tests", "docs", "config", "pyproject.toml"},
@@ -37,21 +41,30 @@ class ComponentLayoutTests(unittest.TestCase):
         )
         google = GOOGLE_ROOT / "src" / "msp_bonds_google"
         self.assertEqual(
-            {p.name for p in google.iterdir()},
+            child_names(google),
             {"__init__.py", "approvals.py", "auth.py", "cli.py", "identity.py",
-             "gmail_profile_diagnostic.py", "utils.py", "workspace.py", "writes.py"},
+             "gmail_profile_diagnostic.py",
+             "utils.py", "workspace.py", "writes.py"},
         )
         vtb = VTB_ROOT / "src" / "msp_bonds_vtb_reports"
-        self.assertEqual({p.name for p in vtb.iterdir()}, {"__init__.py", "archive.py"})
+        self.assertEqual(
+            child_names(vtb),
+            {
+                "__init__.py", "archive.py", "archive_reconciliation.py", "classifier.py",
+                "gmail_discovery.py", "import_journal.py", "import_prepare.py",
+                "import_recovery.py", "mail_routing.py", "report_diagnostics.py",
+                "text_extraction.py", "vtb_mail_intake.py", "vtb_registry_refresh.py",
+            },
+        )
         telegram = TELEGRAM_ROOT / "src" / "msp_bonds_telegram"
         self.assertEqual(
-            {p.name for p in telegram.iterdir()},
+            child_names(telegram),
             {"__init__.py", "config.py", "credentials.py", "errors.py", "ledger.py",
              "mcp_tool.py", "sender.py", "transport.py"},
         )
         self.assertEqual(
-            {p.name for p in (PACKAGE / "core").iterdir()},
-            {"__init__.py", "paths.py", "server.py"},
+            child_names(PACKAGE / "core"),
+            {"__init__.py", "bond_dossier.py", "diagnostics.py", "paths.py", "server.py"},
         )
 
     def test_google_files_are_not_left_in_shared_source_tests_scripts_or_env(self):
@@ -112,10 +125,10 @@ class ComponentLayoutTests(unittest.TestCase):
         self.assertIn("from msp_bonds_mcp.core.server import mcp", launcher)
         self.assertNotIn("msp_bonds_google", launcher)
         install = (ROOT / "scripts" / "install-local.ps1").read_text(encoding="utf-8")
-        self.assertLess(install.index("components/vtb_reports"), install.index("components/google_workspace"))
         self.assertIn("components/telegram", install)
         test_script = (ROOT / "scripts" / "test-all.ps1").read_text(encoding="utf-8")
         self.assertIn("components/telegram/tests", test_script)
+        self.assertLess(install.index("components/vtb_reports"), install.index("components/google_workspace"))
         google_cli = (GOOGLE_ROOT / "scripts" / "google-local.ps1").read_text(encoding="utf-8")
         self.assertIn("msp_bonds_google.cli", google_cli)
         self.assertTrue((ROOT / "scripts" / "start-local.ps1").is_file())
@@ -128,10 +141,10 @@ class ComponentLayoutTests(unittest.TestCase):
         root_project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         google_project = tomllib.loads((GOOGLE_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         vtb_project = tomllib.loads((VTB_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-        telegram_project = tomllib.loads((TELEGRAM_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         from msp_bonds_mcp import __version__ as root_version
         from msp_bonds_google import __version__ as google_version
         from msp_bonds_vtb_reports import __version__ as vtb_version
+        telegram_project = tomllib.loads((TELEGRAM_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         from msp_bonds_telegram import __version__ as telegram_version
         self.assertEqual(root_project["project"]["version"], root_version)
         self.assertEqual(root_version, metadata.version("msp-bonds-mcp"))
@@ -143,29 +156,34 @@ class ComponentLayoutTests(unittest.TestCase):
         self.assertEqual(vtb_version, metadata.version("msp-bonds-vtb-reports"))
         self.assertEqual(vtb_version, "0.1.0")
         self.assertEqual(telegram_project["project"]["version"], telegram_version)
+        self.assertEqual(telegram_version, metadata.version("msp-bonds-telegram"))
         self.assertEqual(telegram_version, "0.1.0")
-        try:
-            installed_telegram_version = metadata.version("msp-bonds-telegram")
-        except metadata.PackageNotFoundError:
-            installed_telegram_version = None
-        if installed_telegram_version is not None:
-            self.assertEqual(telegram_version, installed_telegram_version)
 
-    def test_stdio_preserves_original_sixteen_schemas_and_adds_fixed_telegram_tool(self):
-        expected = json.loads(
+    def test_stdio_preserves_legacy_schemas_and_matches_current_home_snapshot(self):
+        original_expected = json.loads(
             (ROOT / "tests" / "fixtures" / "mcp_tools_v0_2_1.json").read_text(encoding="utf-8")
+        )
+        home_expected = json.loads(
+            (ROOT / "tests" / "fixtures" / "mcp_tools_home_pre_telegram.json").read_text(encoding="utf-8")
+        )
+        current_expected = json.loads(
+            (ROOT / "tests" / "fixtures" / "mcp_tools_home_current.json").read_text(encoding="utf-8")
         )
         allowed_env = {key: value for key, value in os.environ.items() if key.upper() in {
             "PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP", "USERPROFILE", "APPDATA", "LOCALAPPDATA"
         }}
-        allowed_env["PYTHONPATH"] = os.pathsep.join(str(path) for path in (
-            ROOT / "src",
-            GOOGLE_ROOT / "src",
-            VTB_ROOT / "src",
-            TELEGRAM_ROOT / "src",
-        ))
         allowed_env["PYTHONDONTWRITEBYTECODE"] = "1"
         allowed_env["MSP_GOOGLE_WRITES_ENABLED"] = "0"
+        allowed_env["PYTHONPATH"] = os.pathsep.join(
+            str(path)
+            for path in (
+                ROOT / "src",
+                ROOT / "components" / "google_workspace" / "src",
+                ROOT / "components" / "vtb_reports" / "src",
+                ROOT / "components" / "telegram" / "src",
+                ROOT / "components" / "bond_search" / "src",
+            )
+        )
         params = StdioServerParameters(
             command=sys.executable,
             args=[str(ROOT / "server.py")],
@@ -184,30 +202,25 @@ class ComponentLayoutTests(unittest.TestCase):
                     )
 
         actual = asyncio.run(discover())
-        self.assertEqual(len(actual), 17)
         actual_by_name = {item["name"]: item for item in actual}
-        expected_names = {item["name"] for item in expected}
-        self.assertEqual(set(actual_by_name), expected_names | {"send_telegram_notification"})
+        original_by_name = {item["name"]: item for item in original_expected}
+        home_by_name = {item["name"]: item for item in home_expected}
+        current_by_name = {item["name"]: item for item in current_expected}
+        self.assertEqual(len(actual_by_name), 26)
+        self.assertEqual(actual, current_expected)
         self.assertEqual(
-            [actual_by_name[item["name"]] for item in expected],
-            expected,
+            {name: actual_by_name[name] for name in original_by_name},
+            original_by_name,
         )
+        self.assertTrue(set(home_by_name).issubset(actual_by_name))
         self.assertEqual(
-            actual_by_name["send_telegram_notification"],
-            {
-                "name": "send_telegram_notification",
-                "inputSchema": {
-                    "properties": {
-                        "event_id": {"title": "Event Id", "type": "string"},
-                        "text": {"title": "Text", "type": "string"},
-                    },
-                    "required": ["event_id", "text"],
-                    "title": "send_telegram_notificationArguments",
-                    "type": "object",
-                },
-            },
+            {name: actual_by_name[name] for name in current_by_name},
+            current_by_name,
         )
+        self.assertIn("prepare_vtb_report_import", actual_by_name)
+
 
 
 if __name__ == "__main__":
     unittest.main()
+

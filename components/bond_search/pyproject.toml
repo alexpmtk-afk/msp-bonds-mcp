@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "msp-bonds-bond-search"
-version = "0.1.0"
-description = "Isolated read-only bond discovery and evidence routing component"
+version = "0.2.0"
+description = "Isolated read-only bond discovery, policy screening and evidence model"
 requires-python = ">=3.11"
 dependencies = []
 

@@ -45,18 +45,21 @@ def sha256_bytes(content: bytes) -> str:
 
 
 def attachment_parts(payload: dict) -> list[dict]:
+    """Return safe metadata for named attachments without exposing message body bytes."""
     result = []
     stack = [payload]
     while stack:
         part = stack.pop()
         stack.extend(reversed(part.get("parts", []) or []))
+        body = part.get("body") or {}
         name = part.get("filename", "")
-        if name:
-            result.append({"filename": safe_filename(name),
+        attachment_id = body.get("attachmentId")
+        if name or attachment_id:
+            result.append({"filename": safe_filename(name) if name else "attachment.bin",
                            "mime_type": part.get("mimeType", ""),
                            "part_id": part.get("partId", ""),
-                           "attachment_id": (part.get("body") or {}).get("attachmentId"),
-                           "size": (part.get("body") or {}).get("size", 0)})
+                           "attachment_id": attachment_id,
+                           "size": body.get("size")})
     return result
 
 

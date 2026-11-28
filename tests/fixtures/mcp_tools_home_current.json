@@ -1,0 +1,474 @@
+[
+  {
+    "name": "bond_analyze",
+    "inputSchema": {
+      "properties": {
+        "isin": {
+          "title": "Isin",
+          "type": "string"
+        },
+        "check_moex": {
+          "default": false,
+          "title": "Check Moex",
+          "type": "boolean"
+        },
+        "include_ledger": {
+          "default": false,
+          "title": "Include Ledger",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "isin"
+      ],
+      "type": "object",
+      "title": "bond_analyzeArguments"
+    }
+  },
+  {
+    "name": "bond_search",
+    "inputSchema": {
+      "properties": {
+        "max_items": {
+          "default": 100,
+          "title": "Max Items",
+          "type": "integer"
+        },
+        "spreadsheet_id": {
+          "default": "",
+          "title": "Spreadsheet Id",
+          "type": "string"
+        },
+        "fetch_all": {
+          "default": false,
+          "title": "Fetch All",
+          "type": "boolean"
+        }
+      },
+      "type": "object",
+      "title": "bond_searchArguments"
+    }
+  },
+  {
+    "name": "check_vtb_report_formats",
+    "inputSchema": {
+      "properties": {
+        "max_files": {
+          "default": 30,
+          "title": "Max Files",
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "check_vtb_report_formatsArguments"
+    }
+  },
+  {
+    "name": "diagnose_vtb_report",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "part_id": {
+          "title": "Part Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "part_id"
+      ],
+      "type": "object",
+      "title": "diagnose_vtb_reportArguments"
+    }
+  },
+  {
+    "name": "get_mcp_system_diagnostics",
+    "inputSchema": {
+      "properties": {
+        "component": {
+          "default": "core",
+          "title": "Component",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "get_mcp_system_diagnosticsArguments"
+    }
+  },
+  {
+    "name": "get_vtb_archive_status",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "get_vtb_archive_statusArguments"
+    }
+  },
+  {
+    "name": "get_vtb_import_status",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "get_vtb_import_statusArguments"
+    }
+  },
+  {
+    "name": "google_connection_health",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "google_connection_healthArguments"
+    }
+  },
+  {
+    "name": "google_drive_list",
+    "inputSchema": {
+      "properties": {
+        "parent_id": {
+          "default": "",
+          "title": "Parent Id",
+          "type": "string"
+        },
+        "name_contains": {
+          "default": "",
+          "title": "Name Contains",
+          "type": "string"
+        },
+        "page_size": {
+          "default": 100,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "google_drive_listArguments"
+    }
+  },
+  {
+    "name": "google_drive_metadata",
+    "inputSchema": {
+      "properties": {
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id"
+      ],
+      "type": "object",
+      "title": "google_drive_metadataArguments"
+    }
+  },
+  {
+    "name": "google_drive_read_text",
+    "inputSchema": {
+      "properties": {
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        },
+        "max_chars": {
+          "default": 30000,
+          "title": "Max Chars",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file_id"
+      ],
+      "type": "object",
+      "title": "google_drive_read_textArguments"
+    }
+  },
+  {
+    "name": "google_execute_approved_write",
+    "inputSchema": {
+      "properties": {
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id"
+      ],
+      "type": "object",
+      "title": "google_execute_approved_writeArguments"
+    }
+  },
+  {
+    "name": "google_gmail_labels",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "google_gmail_labelsArguments"
+    }
+  },
+  {
+    "name": "google_gmail_message",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "include_body": {
+          "default": false,
+          "title": "Include Body",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id"
+      ],
+      "type": "object",
+      "title": "google_gmail_messageArguments"
+    }
+  },
+  {
+    "name": "google_gmail_search",
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "default": "",
+          "title": "Query",
+          "type": "string"
+        },
+        "label_id": {
+          "default": "",
+          "title": "Label Id",
+          "type": "string"
+        },
+        "page_size": {
+          "default": 50,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "google_gmail_searchArguments"
+    }
+  },
+  {
+    "name": "google_gmail_stage_attachment",
+    "inputSchema": {
+      "properties": {
+        "message_id": {
+          "title": "Message Id",
+          "type": "string"
+        },
+        "part_id": {
+          "title": "Part Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message_id",
+        "part_id"
+      ],
+      "type": "object",
+      "title": "google_gmail_stage_attachmentArguments"
+    }
+  },
+  {
+    "name": "google_oauth_status",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "google_oauth_statusArguments"
+    }
+  },
+  {
+    "name": "google_prepare_write",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "params_json": {
+          "title": "Params Json",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "params_json"
+      ],
+      "type": "object",
+      "title": "google_prepare_writeArguments"
+    }
+  },
+  {
+    "name": "google_sheets_read",
+    "inputSchema": {
+      "properties": {
+        "spreadsheet_id": {
+          "title": "Spreadsheet Id",
+          "type": "string"
+        },
+        "a1_range": {
+          "default": "A1:J20",
+          "title": "A1 Range",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spreadsheet_id"
+      ],
+      "type": "object",
+      "title": "google_sheets_readArguments"
+    }
+  },
+  {
+    "name": "google_write_plan_status",
+    "inputSchema": {
+      "properties": {
+        "plan_id": {
+          "title": "Plan Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "plan_id"
+      ],
+      "type": "object",
+      "title": "google_write_plan_statusArguments"
+    }
+  },
+  {
+    "name": "list_vtb_reports",
+    "inputSchema": {
+      "properties": {
+        "report_type": {
+          "default": "",
+          "title": "Report Type",
+          "type": "string"
+        },
+        "account": {
+          "default": "",
+          "title": "Account",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 100,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "title": "list_vtb_reportsArguments"
+    }
+  },
+  {
+    "name": "prepare_vtb_report_import",
+    "inputSchema": {
+      "properties": {
+        "page_size": {
+          "default": 10,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "prepare_vtb_report_importArguments"
+    }
+  },
+  {
+    "name": "reconcile_vtb_imports",
+    "inputSchema": {
+      "properties": {
+        "sha256_prefix": {
+          "title": "Sha256 Prefix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256_prefix"
+      ],
+      "type": "object",
+      "title": "reconcile_vtb_importsArguments"
+    }
+  },
+  {
+    "name": "refresh_vtb_archive_registry",
+    "inputSchema": {
+      "properties": {},
+      "type": "object",
+      "title": "refresh_vtb_archive_registryArguments"
+    }
+  },
+  {
+    "name": "scan_vtb_gmail_reports",
+    "inputSchema": {
+      "properties": {
+        "page_size": {
+          "default": 50,
+          "title": "Page Size",
+          "type": "integer"
+        },
+        "page_token": {
+          "default": "",
+          "title": "Page Token",
+          "type": "string"
+        },
+        "max_pages": {
+          "default": 10,
+          "title": "Max Pages",
+          "type": "integer"
+        },
+        "scope": {
+          "default": "all_senders",
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "title": "scan_vtb_gmail_reportsArguments"
+    }
+  },
+  {
+    "name": "send_telegram_notification",
+    "inputSchema": {
+      "properties": {
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "text"
+      ],
+      "type": "object",
+      "title": "send_telegram_notificationArguments"
+    }
+  }
+]
