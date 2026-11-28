@@ -31,3 +31,7 @@ PR №5 добавил в main отдельный компонент Telegram и
 Инструкции и команды настройки находятся в instructions/ и SETUP.txt. Файлы .env.example — только шаблоны; они не загружаются автоматически.
 
 Секреты, токены, личные конфигурации HOME, финансовые документы, резервные копии и временные данные не должны попадать в этот репозиторий. Подробная процедура авторизации и безопасного профиля Gmail описана в components/google_workspace/docs/GMAIL_OAUTH_SETUP.md.
+
+## HOME status — 28.11.2026 (separate from public main)
+
+The VTB recovery extension was installed on HOME after 144 VTB and 35 Google tests passed. Live client discovery confirmed 26 tools. The three new recovery tools expose queue status, bounded evidence-based reconciliation, and private archive metadata refresh. Full mail scan and registry verification succeeded without cloud writes; the first new real report remains necessary for end-to-end acceptance. Local owner approval and the disabled-by-default write gate remain unchanged. Sanitized recovery source and verified installation packages are archived in PRIVATE, not merged into public main. Do not treat the public branch or a reconstructed snapshot as the deployed HOME version.
