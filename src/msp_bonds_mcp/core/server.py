@@ -145,3 +145,15 @@ def send_telegram_notification(event_id: str, text: str) -> dict:
         # Keep the existing server usable even when the optional package is absent.
         return {"status": "failed", "error_code": "telegram_component_unavailable"}
     return send(event_id, text)
+
+# BEGIN MSP BONDS READ-ONLY DIAGNOSTICS TOOL
+@mcp.tool()
+def get_mcp_system_diagnostics(component: str = "core") -> dict:
+    """Read-only HOME source SHA256, file timestamps, versions and declared MCP tools.
+
+    Allowed component: core, vtb, google, telegram, bond_search, all.
+    No arbitrary paths, source content, credentials, runtime or report data.
+    """
+    from .diagnostics import collect_diagnostics
+    return _safe(collect_diagnostics, component)
+# END MSP BONDS READ-ONLY DIAGNOSTICS TOOL
